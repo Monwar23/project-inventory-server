@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 require('dotenv').config()
 const app = express()
@@ -10,7 +10,6 @@ const corsOptions = {
     origin: [
       'http://localhost:5173',
       'http://localhost:5174',
-      'https://dinedash.netlify.app',
       ,
     ],
     credentials: true,
@@ -54,6 +53,13 @@ async function run() {
         const { name, image_url,start_date } = req.body;
         const result = await categoryCollection.insertOne({ name, image_url,start_date });
         res.send(result)
+      })
+
+      app.delete('/category/:id', async (req, res) => {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) }
+        const result = await categoryCollection.deleteOne(query);
+        res.send(result);
       })
 
 
