@@ -32,6 +32,7 @@ async function run() {
     try {
         const categoryCollection = client.db('Inventory').collection('Category');
         const productCollection = client.db('Inventory').collection('Products');
+        const supplierCollection = client.db('Inventory').collection('Supplier');
 
         // Category routes
         app.get('/category', async (req, res) => {
@@ -80,6 +81,31 @@ async function run() {
             const result = await productCollection.deleteOne(query);
             res.send(result);
         });
+
+        // supplier
+
+        app.get('/supplier', async (req, res) => {
+            const { search = '', sort = 'recent' } = req.query;
+            const query = search ? {supplier_name: { $regex: search, $options: 'i' } } : {};
+            const sortOption = sort === 'recent' ? { time_added: -1 } : { time_added: 1 };
+            const result = await supplierCollection.find(query).sort(sortOption).toArray();
+            res.send(result);
+        });
+
+        app.post('/supplier', async (req, res) => {
+            const { supplier_name, phone, email, date } = req.body;
+            const time_added = new Date();
+            const result = await supplierCollection.insertOne({ supplier_name, phone, email, time_added });
+            res.send(result);
+        });
+
+        app.delete('/supplier/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await supplierCollection.deleteOne(query);
+            res.send(result);
+        });
+
 
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
