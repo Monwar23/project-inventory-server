@@ -34,6 +34,7 @@ async function run() {
         const productCollection = client.db('Inventory').collection('Products');
         const supplierCollection = client.db('Inventory').collection('Supplier');
         const purchaseCollection = client.db('Inventory').collection('Purchase');
+        const salesCollection = client.db('Inventory').collection('Sales');
 
         // Category routes
         app.get('/category', async (req, res) => {
@@ -76,7 +77,6 @@ async function run() {
             const result = await productCollection.insertOne({ product_name, image, quantity, supplier_name, purchase_price, sales_price, category, timestamp });
             res.send(result);
         });
-
         app.delete('/product/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
@@ -111,14 +111,6 @@ async function run() {
             res.send(result);
         });
 
-
-        app.delete("/foods/:id", async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: new ObjectId(id) }
-            const result = await foodsCollection.deleteOne(query)
-            res.send(result)
-        })
-
         // supplier
 
         app.get('/supplier', async (req, res) => {
@@ -152,9 +144,9 @@ async function run() {
                 $set: {
                     supplier_name: updateSupplier.supplier_name,
                     phone: updateSupplier.
-                    phone,
+                        phone,
                     email: updateSupplier.email,
-                    
+
                 },
             };
             const result = await supplierCollection.updateOne(filter, supplier, options);
@@ -185,16 +177,16 @@ async function run() {
         app.post('/purchase', async (req, res) => {
             const { supplier_name, product_name, category, image, quantity, purchase_price, sales_price } = req.body;
             const timestamp = new Date();
-        
+
             try {
                 // Check if the product already exists
                 const product = await productCollection.findOne({ product_name, category });
-        
+
                 if (product) {
                     // Update the product quantity if it exists
                     await productCollection.updateOne(
                         { product_name, category },
-                        { 
+                        {
                             $inc: { quantity: quantity },
                             $set: { image, purchase_price, sales_price, supplier_name, timestamp }
                         }
@@ -212,7 +204,7 @@ async function run() {
                         timestamp
                     });
                 }
-        
+
                 // Insert purchase record
                 const purchaseResult = await purchaseCollection.insertOne({
                     supplier_name,
@@ -224,16 +216,16 @@ async function run() {
                     sales_price,
                     timestamp
                 });
-        
+
                 res.send(purchaseResult);
             } catch (error) {
                 console.error("Error processing purchase:", error);
                 res.status(500).send({ error: "Failed to add purchase" });
             }
         });
-        
 
-       
+
+
 
         app.get('/purchase/:id', async (req, res) => {
             const id = req.params.id;
@@ -241,6 +233,25 @@ async function run() {
             const result = await purchaseCollection.findOne(query);
             res.send(result);
         })
+        app.put('/purchase/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+            const options = { upsert: true };
+            const updatePurchase = req.body;
+            const purchase = {
+                $set: {
+                    product_name: updatePurchase.product_name,
+                    image: updatePurchase.image,
+                    quantity: updatePurchase.quantity,
+                    supplier_name: updatePurchase.supplier_name,
+                    purchase_price: updatePurchase.purchase_price,
+                    sales_price: updatePurchase.sales_price,
+                    category: updatePurchase.category,
+                },
+            };
+            const result = await purchaseCollection.updateOne(filter, purchase, options);
+            res.send(result);
+        });
 
 
         app.delete('/purchase/:id', async (req, res) => {
@@ -250,6 +261,71 @@ async function run() {
             res.send(result);
         });
 
+
+        // Sales
+        app.get('/sales', async (req, res) => {
+            const { search = '', sort = 'recent' } = req.query;
+            const query = search ? { customer_name: { $regex: search, $options: 'i' } } : {};
+            const sortOption = sort === 'recent' ? { timestamp: -1 } : { timestamp: 1 };
+            const result = await salesCollection.find(query).sort(sortOption).toArray();
+            res.send(result);
+        });
+
+        app.get('/sales/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await salesCollection.findOne(query);
+            res.send(result);
+        })
+
+        app.post('/sales', async (req, res) => {
+            const { customer_name, category, product_name, price, quantity} = req.body;
+            
+            // Create a timestamp for when the sale is added
+            const timestamp = new Date();
+            const total_price=quantity*price
+        
+            // Insert the new sales record into the sales collection
+            const result = await salesCollection.insertOne({
+                customer_name,
+                category,
+                product_name,
+                price,
+                quantity,
+                total_price,
+                timestamp  // Automatically add a timestamp
+            });
+        
+            // Return the result of the insert operation
+            res.send(result);
+        });
+
+        app.put('/sales/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+            const options = { upsert: true };
+            const updateSales = req.body;
+            const sales = {
+                $set: {
+                    customer_name: updateSales.customer_name,
+                    customer_phone: updateSales.customer_phone,
+                    product_name: updateSales.product_name,
+                    category: updateSales.category,
+                    quantity: updateSales.quantity,
+                    price: updateSales.price,
+                },
+            };
+            const result = await salesCollection.updateOne(filter, sales, options);
+            res.send(result);
+        });
+
+
+        app.delete('/sales/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await salesCollection.deleteOne(query);
+            res.send(result);
+        });
 
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
