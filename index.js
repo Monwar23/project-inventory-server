@@ -187,7 +187,6 @@ async function run() {
             const product = {
                 $set: {
                     product_name: updateProduct.product_name,
-                    image: updateProduct.image,
                     quantity: quantityInt,
                     supplier_name: updateProduct.supplier_name,
                     purchase_price: purchasePriceInt,
@@ -516,8 +515,70 @@ async function run() {
             const result = await userCollection.find().toArray()
             res.send(result)
           })
-            
+        
 
+        app.put('/users', async (req, res) => {
+            const user = req.body;
+            const query = { email: user?.email };
+        
+            // Check if user already exists in db
+            const isExist = await userCollection.findOne(query);
+            if (isExist) {
+                // Check if the request includes a role update
+                if (user.role) {
+                    // Update only the role
+                    const updateDoc = {
+                        $set: {
+                            timestamp: Date.now(), // Update timestamp when role is updated
+                        },
+                    };
+                    const result = await userCollection.updateOne(query, updateDoc);
+                    return res.send(result); // Send back the result of the role update
+                }
+                // If no role provided, return the existing user without modifying
+                return res.send(isExist);
+            }
+        
+            // Save user for the first time (for new users)
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    ...user,
+                    timestamp: Date.now(),
+                },
+            };
+            const result = await userCollection.updateOne(query, updateDoc, options);
+            res.send(result);
+        });
+        
+        app.get('/users/:email', async (req, res) => {
+            const email = req.params.email
+            const result = await userCollection.findOne({ email })
+            res.send(result)
+          })
+      
+          app.delete('/users/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await userCollection.deleteOne(query);
+            res.send(result);
+        });
+
+           //update a user role
+    app.patch('/users/update/:email', async (req, res) => {
+        const email = req.params.email
+        const user = req.body
+        const query = { email }
+        const updateDoc = {
+          $set: { ...user, timestamp: Date.now() },
+        }
+        const result = await userCollection.updateOne(query, updateDoc)
+        res.send(result)
+      })
+  
+
+
+        // stat
         app.get('/dashboard-stats', async (req, res) => {
             try {
                 const totalCategories = await categoryCollection.countDocuments();
