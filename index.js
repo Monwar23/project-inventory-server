@@ -76,24 +76,7 @@ async function run() {
             const timestamp = new Date();
             const total_price = quantity * purchase_price
 
-            // Ensure quantity, purchase_price, and sales_price are integers
-            // const quantityInt = parseInt(quantity, 10);
-            // const purchasePriceInt = parseInt(purchase_price, 10);
-            // const salesPriceInt = parseInt(sales_price, 10);
-            // const totalPriceInt = parseInt(total_price, 10);
-
-            // const result = await productCollection.insertOne({
-            //     product_name,
-            //     image,
-            //     quantity: quantityInt,
-            //     supplier_name,
-            //     purchase_price: purchasePriceInt,
-            //     sales_price: salesPriceInt,
-            //     total_price: totalPriceInt,
-            //     category,
-            //     timestamp
-            // });
-            // res.send(result);
+           
             try {
                 // Ensure quantity, purchase_price, and sales_price are integers
                 const quantityInt = parseInt(quantity, 10);
@@ -127,7 +110,6 @@ async function run() {
         
                 // Check if the purchase record already exists
                 const purchase = await purchaseCollection.findOne({ product_name, supplier_name, category });
-        
                 if (purchase) {
                     // If the purchase exists, increment its quantity
                     await purchaseCollection.updateOne(
@@ -182,7 +164,7 @@ async function run() {
             const quantityInt = parseInt(updateProduct.quantity, 10);
             const purchasePriceInt = parseInt(updateProduct.purchase_price, 10);
             const salesPriceInt = parseInt(updateProduct.sales_price, 10);
-            const totalPriceInt = parseInt(updateProduct.total_price, 10);
+            const totalPriceInt = quantityInt*purchasePriceInt;
 
             const product = {
                 $set: {
@@ -260,65 +242,6 @@ async function run() {
             const result = await purchaseCollection.find(query).sort(sortOption).toArray();
             res.send(result);
         });
-
-        // app.post('/purchase', async (req, res) => {
-        //     const { supplier_name, product_name, category, image, quantity, purchase_price, sales_price } = req.body;
-        //     const timestamp = new Date();
-        //     const total_price = quantity * purchase_price
-        //     try {
-        //         // Ensure quantity, purchase_price, and sales_price are integers
-        //         const quantityInt = parseInt(quantity, 10);
-        //         const purchasePriceInt = parseInt(purchase_price, 10);
-        //         const salesPriceInt = parseInt(sales_price, 10);
-        //         const totalPriceInt = parseInt(total_price, 10)
-
-        //         // Check if the product already exists
-        //         const product = await productCollection.findOne({ product_name, category });
-
-
-        //         if (product) {
-        //             // Update the product quantity if it exists
-        //             await productCollection.updateOne(
-        //                 { product_name, category },
-        //                 {
-        //                     $inc: { quantity: quantityInt },
-        //                     $set: { image, purchase_price: purchasePriceInt, sales_price: salesPriceInt, total_price: totalPriceInt, supplier_name, timestamp }
-        //                 }
-        //             );
-        //         } else {
-        //             // Insert the product if it does not exist
-        //             await productCollection.insertOne({
-        //                 product_name,
-        //                 category,
-        //                 image,
-        //                 quantity: quantityInt,
-        //                 purchase_price: purchasePriceInt,
-        //                 sales_price: salesPriceInt,
-        //                 total_price: totalPriceInt,
-        //                 supplier_name,
-        //                 timestamp
-        //             });
-        //         }
-
-        //         // Insert purchase record
-        //         const purchaseResult = await purchaseCollection.insertOne({
-        //             supplier_name,
-        //             product_name,
-        //             category,
-        //             image,
-        //             quantity: quantityInt,
-        //             purchase_price: purchasePriceInt,
-        //             sales_price: salesPriceInt,
-        //             total_price: totalPriceInt,
-        //             timestamp
-        //         });
-
-        //         res.send(purchaseResult);
-        //     } catch (error) {
-        //         console.error("Error processing purchase:", error);
-        //         res.status(500).send({ error: "Failed to add purchase" });
-        //     }
-        // });
 
         app.post('/purchase', async (req, res) => {
             const { supplier_name, product_name, category, image, quantity, purchase_price, sales_price } = req.body;
@@ -407,7 +330,8 @@ async function run() {
             const quantityInt = parseInt(updatePurchase.quantity, 10);
             const purchasePriceInt = parseInt(updatePurchase.purchase_price, 10);
             const salesPriceInt = parseInt(updatePurchase.sales_price, 10);
-            const totalPriceInt = parseInt(updatePurchase.total_price, 10);
+            // const totalPriceInt = parseInt(updatePurchase.total_price, 10);
+            const updateTotalPrice=quantityInt*purchasePriceInt
 
             const purchase = {
                 $set: {
@@ -417,13 +341,15 @@ async function run() {
                     supplier_name: updatePurchase.supplier_name,
                     purchase_price: purchasePriceInt,
                     sales_price: salesPriceInt,
-                    total_price: totalPriceInt,
+                    total_price: updateTotalPrice,
                     category: updatePurchase.category,
                 },
             };
             const result = await purchaseCollection.updateOne(filter, purchase, options);
             res.send(result);
         });
+
+        
 
         app.delete('/purchase/:id', async (req, res) => {
             const id = req.params.id;
@@ -577,7 +503,6 @@ async function run() {
       })
   
 
-
         // stat
         app.get('/dashboard-stats', async (req, res) => {
             try {
@@ -601,6 +526,7 @@ async function run() {
                     }
                 ]).toArray();
 
+                
                 // Calculate total revenue and amounts
                 const totalRevenue = salesData.reduce((acc, curr) => acc + curr.total, 0);
                 const totalPurchasesAmount = purchaseData.reduce((acc, curr) => acc + curr.total, 0);
@@ -622,7 +548,6 @@ async function run() {
                 res.status(500).send({ error: 'Failed to fetch dashboard stats' });
             }
         });
-
 
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
