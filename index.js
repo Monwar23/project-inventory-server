@@ -397,6 +397,21 @@ async function run() {
                 timestamp // Automatically add a timestamp
             });
 
+            // Check if the product exists in the product collection
+        const product = await productCollection.findOne({ product_name, category });
+        
+        if (product) {
+            // If the product exists, decrement its quantity
+            await productCollection.updateOne(
+                { product_name, category },
+                { $inc: { quantity: -quantityInt } } // Decrement the quantity
+            );
+        } else {
+            console.error("Product not found in productCollection.");
+            return res.status(404).send({ error: "Product not found in inventory" });
+        }
+
+
             // Return the result of the insert operation
             res.send(result);
         });
