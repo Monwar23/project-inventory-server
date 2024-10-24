@@ -11,6 +11,7 @@ const corsOptions = {
         'http://localhost:5173',
         'http://localhost:5174',
         'http://localhost:5176',
+        'https://stocksavvy108.netlify.app'
     ],
     credentials: true,
     optionSuccessStatus: 200,
